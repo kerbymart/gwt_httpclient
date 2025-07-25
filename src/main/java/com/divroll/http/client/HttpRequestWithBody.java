@@ -17,6 +17,7 @@
 package com.divroll.http.client;
 
 import com.google.common.collect.ArrayListMultimap;
+import elemental2.promise.Promise;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -73,8 +74,7 @@ abstract class HttpRequestWithBody extends HttpRequest {
         authorization = "Basic " + Base64.btoa(username + ":" + password);
         return this;
     }
-
-    // Abstract methods to be implemented by concrete classes
-    public abstract io.reactivex.Single<HttpResponse<String>> asString();
-    public abstract io.reactivex.Single<HttpResponse<JsonNode>> asJson();
+    
+    public abstract Promise<HttpResponse<JsonNode>> asJson();
+    public abstract Promise<HttpResponse<String>> asString();
 }

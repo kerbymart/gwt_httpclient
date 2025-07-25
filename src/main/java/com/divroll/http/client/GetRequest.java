@@ -15,11 +15,22 @@
  */
 package com.divroll.http.client;
 
+import com.divroll.http.client.exceptions.HttpStatusException;
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
+import elemental2.core.JsError;
+import elemental2.promise.Promise;
+import io.reactivex.Single;
+
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
- * GET Request implementation
+ * GET Request implementation with Java 8 callbacks
  */
 public class GetRequest extends HttpRequestWithoutBody {
 
@@ -38,97 +49,193 @@ public class GetRequest extends HttpRequestWithoutBody {
         super(url, EmptyHeaders, EmptyParams);
     }
 
-    public io.reactivex.Single<HttpResponse<String>> asString() {
-        return io.reactivex.Single.create(new io.reactivex.SingleOnSubscribe<HttpResponse<String>>() {
-            @Override
-            public void subscribe(final io.reactivex.SingleEmitter<HttpResponse<String>> emitter) throws Exception {
-                String requestUrl = url;
-                if (queryMap != null && !queryMap.isEmpty()) {
-                    requestUrl = url + "?" + queries(queryMap);
-                }
-                com.google.gwt.http.client.RequestBuilder requestBuilder =
-                        new com.google.gwt.http.client.RequestBuilder(com.google.gwt.http.client.RequestBuilder.GET, requestUrl);
-                requestBuilder.setTimeoutMillis(TIMEOUT);
+    /**
+     * Execute request and handle response as String
+     * @return Promise that resolves to HttpResponse<String>
+     */
+    @Override
+    public Promise<HttpResponse<String>> asString() {
+        return new Promise<HttpResponse<String>>((resolve, reject) -> {
+            String requestUrl = buildUrl();
+            RequestBuilder rb = new RequestBuilder(RequestBuilder.GET, requestUrl);
+            rb.setTimeoutMillis(TIMEOUT);
 
-                if (headerMap != null) {
-                    // Set default first
-                    headerMap.put("Content-Type", "application/json");
-                    headerMap.put("accept", "application/json");
-                    for (Map.Entry<String, String> entry : headerMap.entries()) {
-                        if (entry.getKey() != null && entry.getValue() != null
-                                && !entry.getKey().isEmpty() && !entry.getValue().isEmpty()) {
-                            requestBuilder.setHeader(entry.getKey(), entry.getValue());
-                        }
+            setHeaders(rb);
+
+            try {
+                rb.sendRequest(null, new RequestCallback() {
+                    @Override
+                    public void onResponseReceived(Request request, Response response) {
+                        handleStringResponseForPromise(response, resolve, reject);
                     }
-                }
-                if (authorization != null) {
-                    requestBuilder.setHeader("Authorization", authorization);
-                }
-                requestBuilder.sendRequest(null, new com.google.gwt.http.client.RequestCallback() {
-                    public void onResponseReceived(com.google.gwt.http.client.Request request,
-                                                   com.google.gwt.http.client.Response response) {
-                        String resp = response.getText();
-                        int statusCode = response.getStatusCode();
-                        String statusText = response.getStatusText();
-                        emitter.onSuccess(new StringHttpResponse(statusCode, statusText, resp));
-                    }
-                    public void onError(com.google.gwt.http.client.Request request, Throwable exception) {
-                        emitter.onError(exception);
+
+                    @Override
+                    public void onError(Request request, Throwable exception) {
+                        reject.onInvoke(exception.getMessage());
                     }
                 });
+            } catch (RequestException e) {
+                reject.onInvoke(e.getMessage());
             }
         });
     }
 
-    public io.reactivex.Single<HttpResponse<java.io.InputStream>> asBinary() {
-        return io.reactivex.Single.create(emitter -> {
-            // Implementation would go here - commented out as in original
-            // Binary handling in GWT requires special consideration
+    /**
+     * Execute request and handle response as String (legacy callback version)
+     * @param onSuccess callback for successful response
+     * @param onError callback for error handling
+     * @return Request object that can be used to cancel the request
+     */
+    public Request asString(Consumer<HttpResponse<String>> onSuccess, Consumer<Throwable> onError) {
+        String requestUrl = buildUrl();
+        RequestBuilder requestBuilder = new RequestBuilder(RequestBuilder.GET, requestUrl);
+        requestBuilder.setTimeoutMillis(TIMEOUT);
+
+        setHeaders(requestBuilder);
+
+        try {
+            return requestBuilder.sendRequest(null, new RequestCallback() {
+                @Override
+                public void onResponseReceived(Request request, Response response) {
+                    try {
+                        handleStringResponse(response,
+                                httpResponse -> onSuccess.accept(httpResponse),
+                                throwable -> onError.accept(throwable));
+                    } catch (Exception e) {
+                        onError.accept(e);
+                    }
+                }
+
+                @Override
+                public void onError(Request request, Throwable exception) {
+                    onError.accept(exception);
+                }
+            });
+        } catch (RequestException e) {
+            onError.accept(e);
+            return null;
+        }
+    }
+
+    /**
+     * Execute request and handle response as Binary (InputStream)
+     * @param onSuccess callback for successful response
+     * @param onError callback for error handling
+     * @return Request object that can be used to cancel the request
+     */
+    public Request asBinary(Consumer<HttpResponse<java.io.InputStream>> onSuccess, Consumer<Throwable> onError) {
+        // Implementation would go here - commented out as in original
+        // Binary handling in GWT requires special consideration
+        onError.accept(new UnsupportedOperationException("Binary response not implemented"));
+        return null;
+    }
+
+    @Override
+    public Promise<HttpResponse<JsonNode>> asJson() {
+        return new Promise<HttpResponse<JsonNode>>((resolve, reject) -> {
+            String requestUrl = buildUrl();
+            RequestBuilder rb = new RequestBuilder(RequestBuilder.GET, requestUrl);
+            rb.setTimeoutMillis(TIMEOUT);
+
+            setHeaders(rb);
+
+            try {
+                rb.sendRequest(null, new RequestCallback() {
+                    @Override
+                    public void onResponseReceived(Request req, Response res) {
+                        handleJsonResponseForPromise(res, resolve, reject);
+                    }
+
+                    @Override
+                    public void onError(Request req, Throwable ex) {
+                        reject.onInvoke(ex.getMessage());
+                    }
+                });
+            } catch (RequestException rex) {
+                reject.onInvoke(rex.getMessage());
+            }
         });
     }
 
-    public io.reactivex.Single<HttpResponse<JsonNode>> asJson() {
-        return io.reactivex.Single.create(new io.reactivex.SingleOnSubscribe<HttpResponse<JsonNode>>() {
-            @Override
-            public void subscribe(io.reactivex.SingleEmitter<HttpResponse<JsonNode>> e) throws com.google.gwt.http.client.RequestException {
-                String requestUrl = url;
-                if (queryMap != null && !queryMap.isEmpty()) {
-                    requestUrl = url + "?" + queries(queryMap);
-                }
-                com.google.gwt.http.client.RequestBuilder requestBuilder =
-                        new com.google.gwt.http.client.RequestBuilder(com.google.gwt.http.client.RequestBuilder.GET, requestUrl);
-                requestBuilder.setTimeoutMillis(TIMEOUT);
+    private String buildUrl() {
+        String url = this.url;
+        if (queryMap != null && !queryMap.isEmpty()) {
+            url += "?" + queries(queryMap);
+        }
+        return url;
+    }
 
-                if (headerMap != null) {
-                    // Set default first
-                    headerMap.put("Content-Type", "application/json");
-                    headerMap.put("accept", "application/json");
-                    for (Map.Entry<String, String> entry : headerMap.entries()) {
-                        if (entry.getKey() != null && entry.getValue() != null
-                                && !entry.getKey().isEmpty() && !entry.getValue().isEmpty()) {
-                            requestBuilder.setHeader(entry.getKey(), entry.getValue());
-                        }
-                    }
+    private void setHeaders(RequestBuilder rb) {
+        rb.setHeader("Content-Type", "application/json");
+        rb.setHeader("accept", "application/json");
+
+        if (headerMap != null) {
+            for (Map.Entry<String, String> e : headerMap.entries()) {
+                if (e.getKey() != null && e.getValue() != null
+                        && !e.getKey().isEmpty() && !e.getValue().isEmpty()) {
+                    rb.setHeader(e.getKey(), e.getValue());
                 }
-                if (authorization != null) {
-                    requestBuilder.setHeader("Authorization", authorization);
-                }
-                requestBuilder.setCallback(new com.google.gwt.http.client.RequestCallback() {
-                    @Override
-                    public void onResponseReceived(com.google.gwt.http.client.Request req, com.google.gwt.http.client.Response res) {
-                        int statusCode = res.getStatusCode();
-                        String statusText = res.getStatusText();
-                        String resp = res.getText();
-                        e.onSuccess(new JsonHttpResponse(statusCode, statusText, resp));
-                    }
-                    @Override
-                    public void onError(com.google.gwt.http.client.Request req, Throwable ex) {
-                        e.onError(ex);
-                    }
-                });
-                com.google.gwt.http.client.Request request = requestBuilder.send();
-                e.setCancellable(request::cancel);
             }
-        });
+        }
+
+        if (authorization != null) {
+            rb.setHeader("Authorization", authorization);
+        }
+    }
+
+    private void handleStringResponse(Response res,
+                                      Consumer<HttpResponse<String>> resolve,
+                                      Consumer<Throwable> reject) {
+        int status = res.getStatusCode();
+        String statusText = res.getStatusText();
+        String raw = res.getText();
+
+        if (status >= 200 && status < 300) {
+            resolve.accept(new StringHttpResponse(status, statusText, raw));
+        } else {
+            reject.accept(new HttpStatusException(status, statusText, raw));
+        }
+    }
+
+    private void handleStringResponseForPromise(Response res,
+                                                Promise.PromiseExecutorCallbackFn.ResolveCallbackFn<HttpResponse<String>> resolve,
+                                                Promise.PromiseExecutorCallbackFn.RejectCallbackFn reject) {
+        int status = res.getStatusCode();
+        String statusText = res.getStatusText();
+        String raw = res.getText();
+
+        if (status >= 200 && status < 300) {
+            resolve.onInvoke(new StringHttpResponse(status, statusText, raw));
+        } else {
+            reject.onInvoke(new HttpStatusException(status, statusText, raw));
+        }
+    }
+
+    private void handleJsonResponse(Response res,
+                                    Consumer<HttpResponse<JsonNode>> resolve,
+                                    Consumer<Throwable> reject) {
+        int status = res.getStatusCode();
+        String statusText = res.getStatusText();
+        String raw = res.getText();
+
+        if (status >= 200 && status < 300) {
+            resolve.accept(new JsonHttpResponse(status, statusText, raw));
+        } else {
+            reject.accept(new HttpStatusException(status, statusText, raw));
+        }
+    }
+
+    private void handleJsonResponseForPromise(Response res,
+                                              Promise.PromiseExecutorCallbackFn.ResolveCallbackFn<HttpResponse<JsonNode>> resolve,
+                                              Promise.PromiseExecutorCallbackFn.RejectCallbackFn reject) {
+        int status = res.getStatusCode();
+        String statusText = res.getStatusText();
+        String raw = res.getText();
+
+        if (status >= 200 && status < 300) {
+            resolve.onInvoke(new JsonHttpResponse(status, statusText, raw));
+        } else {
+            reject.onInvoke(new HttpStatusException(status, statusText, raw));
+        }
     }
 }

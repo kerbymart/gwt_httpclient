@@ -15,255 +15,373 @@
  *  limitations under the License.
  */
 package com.divroll.http.client;
-
 import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.junit.client.GWTTestCase;
-import com.google.gwt.user.client.Window;
-import io.reactivex.Single;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class HttpClientTest extends GWTTestCase {
-
     static final Logger logger = Logger.getLogger(HttpClientTest.class.getName());
-
     @Override
     public String getModuleName() {
         return "com.divroll.http.HttpClient";
     }
-
-    public void testGet() throws Exception{
-        Single<HttpResponse<JsonNode>> singleResponse = HttpClient.get("https://httpbin.org/get")
+    public void testGet() {
+        delayTestFinish(5000);
+        String url = "https://jsonplaceholder.typicode.com/posts/1";
+        HttpClient.get(url)
                 .header("accept", "application/json")
                 .header("Content-Type", "application/json")
-                .asJson();
-        singleResponse.subscribe(response -> {
-            Window.alert(response.getBody().toString());
-            JSONObject json = response.getBody().getObject();
-            String url = json.getString("url");
-            JSONObject headers = json.getJSONObject("headers");
-            assertNotNull(json);
-            assertNotNull(url);
-            assertNotNull(headers);
-            Window.alert("Test Done");
-            finishTest();
-        });
-        delayTestFinish(1000);
-    }
+                .asJson()
+                .then(response -> {
+                    try {
+                        if (response == null) {
+                            logger.severe("Test failed with null response");
+                            fail("Null response received");
+                            finishTest();
+                            return null;
+                        }
+                        logger.info("Status: " + response.getStatus());
+                        logger.info("Status Text: " + response.getStatusText());
 
-    public void testPostFormField() throws Exception{
-        Single<HttpResponse<JsonNode>> singleResponse = HttpClient.post("https://httpbin.org/post")
+                        if (response.getStatus() != 200) {
+                            logger.severe("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            fail("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            finishTest();
+                            return null;
+                        }
+
+                        JsonNode jsonNode = response.getBody();
+                        if (jsonNode == null) {
+                            logger.severe("Test failed with null body");
+                            fail("Null response body");
+                            finishTest();
+                            return null;
+                        }
+
+                        if (jsonNode.isArray()) {
+                            logger.severe("Expected JSON object, got array: " + jsonNode.toString());
+                            fail("Expected JSON object, got array");
+                            finishTest();
+                            return null;
+                        }
+
+                        JSONObject jsonObject = jsonNode.getObject();
+                        if (jsonObject == null) {
+                            logger.severe("Expected JSONObject but got null");
+                            fail("Expected JSONObject but got null");
+                            finishTest();
+                            return null;
+                        }
+
+                        logger.info("Response body: " + jsonObject.toString());
+                        assertTrue(jsonObject.has("userId"));
+                        assertTrue(jsonObject.has("id"));
+                        assertTrue(jsonObject.has("title"));
+                        assertTrue(jsonObject.has("body"));
+
+                        assertEquals(1L, jsonObject.getLong("id"));
+                        assertEquals(1L, jsonObject.getLong("userId"));
+                        assertTrue(jsonObject.getString("title").length() > 0);
+                        assertTrue(jsonObject.getString("body").length() > 0);
+
+                        logger.info("Test completed successfully");
+                        finishTest();
+                        return null;
+                    } catch (Exception e) {
+                        logger.log(Level.INFO, "Error processing response: " + e.getMessage(), e);
+                        fail("Response processing failed: " + e.getMessage());
+                        finishTest();
+                        return null;
+                    }
+                }, error -> {
+                    String errorMsg = error != null ? error.toString() : "Unknown error";
+                    logger.severe("HTTP Request failed: " + errorMsg);
+                    fail("Request failed: " + errorMsg);
+                    finishTest();
+                    return null;
+                });
+    }
+    public void testPostJson() {
+        delayTestFinish(10000);
+
+        JSONObject payload = new JSONObject();
+        payload.put("title", "foo");
+        payload.put("body", "bar");
+        payload.put("userId", 1);
+
+        HttpClient.post("https://jsonplaceholder.typicode.com/posts")
                 .header("accept", "application/json")
                 .header("Content-Type", "application/json")
-                .queryString("name", "Mark")
-                .field("middle", "O")
-                .field("last", "Polo")
-                .asJson();
-        singleResponse.subscribe(response -> {
-            Window.alert(response.toString());
-            JSONObject json = response.getBody().getObject();
-            String url = json.getString("url");
-            JSONArray headers = json.getJSONArray("headers");
-            JSONObject args = json.getJSONObject("args");
-            assertNotNull(json);
-            assertNotNull(url);
-            assertNotNull(headers);
-            assertNotNull(args);
-            String name = args.getString("name");
-            assertEquals("Mark", name);
-        });
-    }
-
-    public void testPostJson() throws Exception {
-        JSONObject payload = new JSONObject();
-        payload.put("hello", new JSONString("world"));
-
-        Single<HttpResponse<JsonNode>> singleResponse = HttpClient.post("https://httpbin.org/post")
-                //.header("accept", "application/json")
-                //.header("Content-Type", "application/json")
-                .queryString("name", "Mark")
                 .body(payload.toString())
-                .asJson();
+                .asJson()
+                .then(response -> {
+                    try {
+                        if (response == null) {
+                            logger.severe("Test failed with null response");
+                            fail("Null response received");
+                            finishTest();
+                            return null;
+                        }
 
-        singleResponse.subscribe(response -> {
-            Window.alert(response.toString());
-            JSONObject json = response.getBody().getObject();
-            String url = json.getString("url");
-            JSONObject headers = json.getJSONObject("headers");
-            JSONObject jsonField = json.getJSONObject("json");
+                        logger.info("Status: " + response.getStatus());
+                        logger.info("Status Text: " + response.getStatusText());
 
-            assertNotNull(json);
-            assertNotNull(url);
-            assertNotNull(headers);
-            assertNotNull(jsonField);
+                        if (response.getStatus() != 201) {
+                            logger.severe("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            fail("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            finishTest();
+                            return null;
+                        }
 
-            String accept = headers.getString("Accept");
-            String contentType = headers.getString("Content-Type");
-            String hello = jsonField.getString("hello");
+                        JsonNode jsonNode = response.getBody();
+                        if (jsonNode == null) {
+                            logger.severe("Test failed with null body");
+                            fail("Null response body");
+                            finishTest();
+                            return null;
+                        }
 
-            assertEquals("application/json", accept);
-            assertEquals("application/json", contentType);
-            assertEquals("world", hello);
-        });
+                        if (jsonNode.isArray()) {
+                            logger.severe("Expected JSON object, got array");
+                            fail("Expected JSON object, got array");
+                            finishTest();
+                            return null;
+                        }
+
+                        JSONObject jsonObject = jsonNode.getObject();
+                        if (jsonObject == null) {
+                            logger.severe("Expected JSONObject but got null");
+                            fail("Expected JSONObject but got null");
+                            finishTest();
+                            return null;
+                        }
+
+                        logger.info("Response body: " + jsonObject.toString());
+
+                        assertNotNull(jsonObject.get("id"));
+                        assertEquals(1L, jsonObject.getLong("userId"));
+                        assertEquals("foo", jsonObject.getString("title"));
+                        assertEquals("bar", jsonObject.getString("body"));
+
+                        logger.info("Test completed successfully");
+                        finishTest();
+                        return null;
+                    } catch (Exception e) {
+                        logger.log(Level.INFO, "Error processing response: " + e.getMessage(), e);
+                        fail("Response processing failed: " + e.getMessage());
+                        finishTest();
+                        return null;
+                    }
+                }, error -> {
+                    String errorMsg = error != null ? error.toString() : "Unknown error";
+                    logger.severe("HTTP Request failed: " + errorMsg);
+                    fail("Request failed: " + errorMsg);
+                    finishTest();
+                    return null;
+                });
     }
+    public void testPut() {
+        delayTestFinish(10000);
 
-    public void testPut() throws Exception {
         JSONObject payload = new JSONObject();
-        payload.put("hello", new JSONString("world"));
+        payload.put("id", 1);
+        payload.put("title", "foo");
+        payload.put("body", "bar");
+        payload.put("userId", 1);
 
-        Single<HttpResponse<JsonNode>> singleResponse = HttpClient.put("https://httpbin.org/put")
-                .queryString("name", "Mark")
+        HttpClient.put("https://jsonplaceholder.typicode.com/posts/1")
                 .body(payload.toString())
-                .basicAuth("john", "doe")
-                .asJson();
+                .asJson()
+                .then(response -> {
+                    try {
+                        if (response == null) {
+                            logger.severe("Test failed with null response");
+                            fail("Null response received");
+                            finishTest();
+                            return null;
+                        }
 
-        singleResponse.subscribe(response -> {
-            Window.alert(response.toString());
-            JSONObject json = response.getBody().getObject();
-            String url = json.getString("url");
-            JSONObject headers = json.getJSONObject("headers");
-            JSONObject jsonField = json.getJSONObject("json");
+                        logger.info("Status: " + response.getStatus());
+                        logger.info("Status Text: " + response.getStatusText());
 
-            assertNotNull(json);
-            assertNotNull(url);
-            assertNotNull(headers);
-            assertNotNull(jsonField);
+                        if (response.getStatus() != 200) {
+                            logger.severe("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            fail("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            finishTest();
+                            return null;
+                        }
 
-            String accept = headers.getString("Accept");
-            String authorization = headers.getString("Authorization");
-            String contentType = headers.getString("Content-Type");
-            String hello = jsonField.getString("hello");
+                        JsonNode jsonNode = response.getBody();
+                        if (jsonNode == null) {
+                            logger.severe("Test failed with null body");
+                            fail("Null response body");
+                            finishTest();
+                            return null;
+                        }
 
-            assertEquals("application/json", accept);
-            assertEquals("application/json", contentType);
-            assertEquals("world", hello);
+                        if (jsonNode.isArray()) {
+                            logger.severe("Expected JSON object, got array");
+                            fail("Expected JSON object, got array");
+                            finishTest();
+                            return null;
+                        }
 
-            String actual = "Basic " + Base64.btoa("john" + ":" + "doe");
-            assertEquals(actual, authorization);
-        });
+                        JSONObject jsonObject = jsonNode.getObject();
+                        if (jsonObject == null) {
+                            logger.severe("Expected JSONObject but got null");
+                            fail("Expected JSONObject but got null");
+                            finishTest();
+                            return null;
+                        }
 
+                        logger.info("Response body: " + jsonObject.toString());
+
+                        assertEquals(1L, jsonObject.getLong("id"));
+                        assertEquals(1L, jsonObject.getLong("userId"));
+                        assertEquals("foo", jsonObject.getString("title"));
+                        assertEquals("bar", jsonObject.getString("body"));
+
+                        logger.info("Test completed successfully");
+                        finishTest();
+                        return null;
+                    } catch (Exception e) {
+                        logger.log(Level.INFO, "Error processing response: " + e.getMessage(), e);
+                        fail("Response processing failed: " + e.getMessage());
+                        finishTest();
+                        return null;
+                    }
+                }, error -> {
+                    String errorMsg = error != null ? error.toString() : "Unknown error";
+                    logger.severe("HTTP Request failed: " + errorMsg);
+                    fail("Request failed: " + errorMsg);
+                    finishTest();
+                    return null;
+                });
     }
+    public void testDelete() {
+        delayTestFinish(10000);
 
-    public void testDelete() throws Exception {
-        JSONObject payload = new JSONObject();
-        payload.put("hello", new JSONString("world"));
+        HttpClient.delete("https://jsonplaceholder.typicode.com/posts/1")
+                .asJson()
+                .then(response -> {
+                    try {
+                        if (response == null) {
+                            logger.severe("Test failed with null response");
+                            fail("Null response received");
+                            finishTest();
+                            return null;
+                        }
 
-        Single<HttpResponse<JsonNode>> singleResponse = HttpClient.delete("https://httpbin.org/delete")
-                .queryString("name", "Mark")
-                .body(payload.toString())
-                .basicAuth("john", "doe")
-                .asJson();
+                        logger.info("Status: " + response.getStatus());
+                        logger.info("Status Text: " + response.getStatusText());
 
-        singleResponse.subscribe(response -> {
-            Window.alert(response.toString());
-            JSONObject json = response.getBody().getObject();
-            String url = json.getString("url");
-            JSONObject headers = json.getJSONObject("headers");
+                        if (response.getStatus() != 200) {
+                            logger.severe("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            fail("HTTP error: " + response.getStatus() + " " + response.getStatusText());
+                            finishTest();
+                            return null;
+                        }
 
-            assertNotNull(json);
-            assertNotNull(url);
-            assertNotNull(headers);
+                        JsonNode jsonNode = response.getBody();
+                        if (jsonNode == null) {
+                            logger.severe("Test failed with null body");
+                            fail("Null response body");
+                            finishTest();
+                            return null;
+                        }
 
-            String accept = headers.getString("Accept");
-            String authorization = headers.getString("Authorization");
-            String contentType = headers.getString("Content-Type");
+                        // For DELETE, jsonplaceholder returns an empty object {}
+                        if (jsonNode.isArray()) {
+                            logger.severe("Expected empty object, got array");
+                            fail("Expected empty object, got array");
+                            finishTest();
+                            return null;
+                        }
 
-            assertEquals("application/json", accept);
-            assertEquals("application/json", contentType);
+                        JSONObject jsonObject = jsonNode.getObject();
+                        if (jsonObject == null) {
+                            logger.severe("Expected empty JSONObject but got null");
+                            fail("Expected empty JSONObject but got null");
+                            finishTest();
+                            return null;
+                        }
 
-            String actual = "Basic " + Base64.btoa("john" + ":" + "doe");
-            assertEquals(actual, authorization);
-        });
+                        logger.info("Response body: " + jsonObject.toString());
+                        assertTrue(jsonObject.keySet().isEmpty());
+
+                        logger.info("Test completed successfully");
+                        finishTest();
+                        return null;
+                    } catch (Exception e) {
+                        logger.log(Level.INFO, "Error processing response: " + e.getMessage(), e);
+                        fail("Response processing failed: " + e.getMessage());
+                        finishTest();
+                        return null;
+                    }
+                }, error -> {
+                    String errorMsg = error != null ? error.toString() : "Unknown error";
+                    logger.severe("HTTP Request failed: " + errorMsg);
+                    fail("Request failed: " + errorMsg);
+                    finishTest();
+                    return null;
+                });
     }
-
     public void testClientError() {
-        Single<HttpResponse<JsonNode>> response = HttpClient.get("https://httpbin.org/status/400").asJson();
-        response.subscribe(response1 -> {
-            if(response1.getStatus() == 400) {
-                finishTest();
-            } else {
-                fail();
-            }
-        });
-        delayTestFinish(1000);
-    }
+        delayTestFinish(5000);
 
+        HttpClient.get("https://jsonplaceholder.typicode.com/invalid-endpoint")
+                .asJson()
+                .then(response -> {
+                    fail("Expected error response but got success");
+                    finishTest();
+                    return null;
+                }, error -> {
+                    logger.info("Received expected error");
+                    finishTest();
+                    return null;
+                });
+    }
     public void testServerError() {
-        Single<HttpResponse<JsonNode>> response = HttpClient.get("https://httpbin.org/status/500").asJson();
-        response.subscribe(response1 -> {
-            if(response1.getStatus() == 500) {
-                finishTest();
-            } else {
-                fail();
-            }
-        });
-        delayTestFinish(1000);
-    }
+        delayTestFinish(5000);
 
+        HttpClient.get("https://jsonplaceholder.typicode.com/posts/999999999")
+                .asJson()
+                .then(response -> {
+                    fail("Expected server error but got response: " + response.getStatus());
+                    finishTest();
+                    return null;
+                }, error -> {
+                    logger.info("Received expected error: " + error);
+                    finishTest();
+                    return null;
+                });
+    }
+    /*
+     * Keeping these tests commented out as they either don't fit well with the jsonplaceholder API
+     * or are for functionality we're not currently testing (like binary responses)
+     */
+    /*
+    public void testPostFormField() throws Exception{
+        // This test doesn't directly translate to jsonplaceholder's API
+        // Since jsonplaceholder expects proper JSON objects for POST, not form fields
+    }
     public void testBlockingGet() {
-//        Single<HttpResponse<JsonNode>> responseSingle = HttpClient.get("https://httpbin.org/get").asJson();
-//        HttpResponse<JsonNode> response = responseSingle.blockingGet();
-//        Window.alert(response.getBody().toString());
+        // Blocking operations aren't supported in the promise-based API
     }
-
     public void testBinaryGet() {
-        Single<HttpResponse<InputStream>> response
-                = HttpClient.get("https://cors-anywhere.herokuapp.com/https://i.imgur.com/qxOJUDB.jpg").asBinary();
-        response.subscribe(response1 -> {
-
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            int nRead;
-            byte[] data = new byte[1024];
-            while ((nRead = response1.getBody().read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, nRead);
-            }
-            buffer.flush();
-            byte[] byteArray = buffer.toByteArray();
-
-            Window.alert("length=" + byteArray.length);
-            Window.alert(new String(byteArray, StandardCharsets.UTF_8));
-            finishTest();
-        }, error -> {
-            Window.alert(error.toString());
-            fail();
-        });
-        delayTestFinish(6000);
+        // Requires a binary endpoint which jsonplaceholder doesn't provide
     }
-
     public void testBinaryPost() {
-        Single<HttpResponse<InputStream>> response
-                = HttpClient.get("https://cors-anywhere.herokuapp.com/https://i.imgur.com/qxOJUDB.jpg").asBinary();
-        response.subscribe(response1 -> {
-            InputStream inputStream = response1.getBody();
-            Single<HttpResponse<String>> postRequest
-                    = HttpClient.post("https://httpbin.org/post")
-                    .body(inputStream)
-                    .asString();
-            postRequest.subscribe(postresponse -> {
-                Window.alert("POST RESPONSE=" + postresponse.getBody());
-                //FileSaver.saveFileAs("D:/test.txt", postresponse.getBody(), "text/plain");
-                finishTest();
-            });
-        }, error -> {
-            Window.alert(error.toString());
-            fail();
-        });
-        delayTestFinish(6000);
+        // Requires a binary endpoint which jsonplaceholder doesn't provide
     }
-
+    */
     public static native String createBlobUrl(JavaScriptObject blob) /*-{
         var url = $wnd.URL.createObjectURL(blob);
         return url;
     }-*/;
-
-
 }

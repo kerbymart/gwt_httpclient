@@ -17,10 +17,13 @@
 package com.divroll.http.client;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.gwt.http.client.Request;
+import elemental2.promise.Promise;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 abstract class HttpRequestWithoutBody extends HttpRequest {
   public HttpRequestWithoutBody(String url, Set<Header> headers, Map<String, String> queryParameters) {
@@ -50,7 +53,6 @@ abstract class HttpRequestWithoutBody extends HttpRequest {
     return this;
   }
 
-  // Abstract methods to be implemented by concrete classes
-  public abstract io.reactivex.Single<HttpResponse<String>> asString();
-  public abstract io.reactivex.Single<HttpResponse<JsonNode>> asJson();
+  public abstract Promise<HttpResponse<JsonNode>> asJson();
+  public abstract Promise<HttpResponse<String>> asString();
 }

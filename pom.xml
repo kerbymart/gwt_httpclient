@@ -45,6 +45,13 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>gwt-maven-plugin</artifactId>
 				<version>${gwt-maven.version}</version>
+				<configuration>
+					<extraJvmArgs>-Xmx2g -Xms512m -Dgwt.compiler.localWorkers=8</extraJvmArgs>
+					<draftCompile>true</draftCompile>
+					<disableCastChecking>true</disableCastChecking>
+					<disableClassMetadata>true</disableClassMetadata>
+					<disableRunAsync>false</disableRunAsync>
+				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
