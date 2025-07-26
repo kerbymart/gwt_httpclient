@@ -16,15 +16,16 @@
 package com.divroll.http.client;
 
 import com.divroll.http.client.exceptions.HttpStatusException;
+import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
-import elemental2.core.JsError;
+import elemental2.dom.Blob;
 import elemental2.promise.Promise;
-import io.reactivex.Single;
 
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -80,6 +81,21 @@ public class GetRequest extends HttpRequestWithoutBody {
         });
     }
 
+    @Override
+    public Promise<HttpResponse<JavaScriptObject>> asJSO() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Promise<HttpResponse<Blob>> asBlob() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Promise<HttpResponse<InputStream>> asBinary() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
     /**
      * Execute request and handle response as String (legacy callback version)
      * @param onSuccess callback for successful response
@@ -115,19 +131,6 @@ public class GetRequest extends HttpRequestWithoutBody {
             onError.accept(e);
             return null;
         }
-    }
-
-    /**
-     * Execute request and handle response as Binary (InputStream)
-     * @param onSuccess callback for successful response
-     * @param onError callback for error handling
-     * @return Request object that can be used to cancel the request
-     */
-    public Request asBinary(Consumer<HttpResponse<java.io.InputStream>> onSuccess, Consumer<Throwable> onError) {
-        // Implementation would go here - commented out as in original
-        // Binary handling in GWT requires special consideration
-        onError.accept(new UnsupportedOperationException("Binary response not implemented"));
-        return null;
     }
 
     @Override

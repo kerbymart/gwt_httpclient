@@ -15,11 +15,15 @@
  */
 package com.divroll.http.client;
 
+import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
+import elemental2.dom.Blob;
 import elemental2.promise.Promise;
+
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 
@@ -175,6 +179,21 @@ public class HttpRequestWithBodyImpl extends HttpRequestWithBody {
         });
     }
 
+    @Override
+    public Promise<HttpResponse<JavaScriptObject>> asJSO() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Promise<HttpResponse<Blob>> asBlob() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Promise<HttpResponse<InputStream>> asBinary() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
     /**
      * Execute request and handle response as Json using Promise
      * @return Promise that resolves to HttpResponse<JsonNode>
@@ -300,38 +319,6 @@ public class HttpRequestWithBodyImpl extends HttpRequestWithBody {
             } catch (RequestException e) {
                 reject.onInvoke(e.getMessage());
             }
-        });
-    }
-
-    // Existing methods can be kept for backward compatibility
-    public io.reactivex.Single<HttpResponse<String>> asStringSingle() {
-        // Keep original Single-based implementation
-        return io.reactivex.Single.create(new io.reactivex.SingleOnSubscribe<HttpResponse<String>>() {
-            @Override
-            public void subscribe(io.reactivex.SingleEmitter<HttpResponse<String>> emitter) throws RequestException {
-                // Original implementation
-                String requestUrl = url;
-                if (queryMap != null && !queryMap.isEmpty()) {
-                    requestUrl = url + "?" + queries(queryMap);
-                }
-                HttpRequestBuilder b = new HttpRequestBuilder(method, requestUrl);
-                b.setTimeoutMillis(TIMEOUT);
-                // ... rest of original implementation ...
-            }
-        });
-    }
-
-    public io.reactivex.Single<HttpResponse<JsonNode>> asJsonSingle() {
-        // Keep original Single-based implementation
-        return io.reactivex.Single.create(emitter -> {
-            // Original implementation
-        });
-    }
-
-    public io.reactivex.Single<elemental2.dom.Blob> asBlob() {
-        return io.reactivex.Single.create(emitter -> {
-            // Implementation would go here - commented out as in original
-            // Blob handling in GWT requires special consideration
         });
     }
 

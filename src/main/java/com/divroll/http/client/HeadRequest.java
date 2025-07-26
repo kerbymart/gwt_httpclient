@@ -17,12 +17,16 @@
 package com.divroll.http.client;
 
 import com.divroll.http.client.exceptions.HttpStatusException;
+import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
+import elemental2.dom.Blob;
 import elemental2.promise.Promise;
+
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -65,6 +69,21 @@ public class HeadRequest extends HttpRequestWithoutBody {
                 reject.onInvoke(e.getMessage());
             }
         });
+    }
+
+    @Override
+    public Promise<HttpResponse<JavaScriptObject>> asJSO() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Promise<HttpResponse<Blob>> asBlob() {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Promise<HttpResponse<InputStream>> asBinary() {
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override

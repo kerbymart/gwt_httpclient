@@ -17,9 +17,11 @@
 package com.divroll.http.client;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.http.client.Request;
 import elemental2.promise.Promise;
 
+import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -54,5 +56,12 @@ abstract class HttpRequestWithoutBody extends HttpRequest {
   }
 
   public abstract Promise<HttpResponse<JsonNode>> asJson();
+
   public abstract Promise<HttpResponse<String>> asString();
+
+  public abstract Promise<HttpResponse<JavaScriptObject>> asJSO();
+
+  public abstract Promise<HttpResponse<elemental2.dom.Blob>> asBlob();
+
+  public abstract Promise<HttpResponse<InputStream>> asBinary();
 }
