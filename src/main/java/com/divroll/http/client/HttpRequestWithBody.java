@@ -34,6 +34,12 @@ abstract class HttpRequestWithBody extends HttpRequest {
         this.method = method;
     }
 
+    public HttpRequestWithBody(String url, Set<Header> headers, Map<String, String> queryParameters,
+                               String method) {
+        super(url, headers, queryParameters);
+
+    }
+
     public HttpRequestWithBody(String url, com.google.gwt.http.client.RequestBuilder.Method method) {
         super(url, EmptyHeaders, EmptyParams);
         this.method = method;

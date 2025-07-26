@@ -22,19 +22,23 @@ public class HttpClient {
         return new GetRequest(url);
     }
 
-    public static GetRequest head(String url) {
-        return new GetRequest(url);
+    public static HeadRequest head(String url) {
+        return new HeadRequest(url);
     }
 
-    public static HttpRequestWithBodyImpl post(String url) {
-        return new HttpRequestWithBodyImpl(url, RequestBuilder.POST);
+    public static PostRequest post(String url) {
+        return new PostRequest(url);
     }
 
-    public static HttpRequestWithBodyImpl put(String url) {
-        return new HttpRequestWithBodyImpl(url, RequestBuilder.PUT);
+    public static PutRequest put(String url) {
+        return new PutRequest(url);
     }
 
-    public static HttpRequestWithBodyImpl delete(String url) {
-        return new HttpRequestWithBodyImpl(url, RequestBuilder.DELETE);
+    public static DeleteRequest delete(String url) {
+        return new DeleteRequest(url);
+    }
+
+    public static PatchRequest patch(String url) {
+        return new PatchRequest(url);
     }
 }

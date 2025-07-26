@@ -16,7 +16,6 @@
 package com.divroll.http.client;
 
 import com.google.gwt.http.client.Request;
-import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
@@ -35,8 +34,16 @@ public class HttpRequestWithBodyImpl extends HttpRequestWithBody {
         super(url, EmptyHeaders, EmptyParams, method);
     }
 
+    public HttpRequestWithBodyImpl(String url, String method) {
+        super(url, EmptyHeaders, EmptyParams, method);
+    }
+
     public HttpRequestWithBodyImpl(String url, Set<Header> headers, Map<String, String> queryParameters,
                                    com.google.gwt.http.client.RequestBuilder.Method method) {
+        super(url, headers, queryParameters, method);
+    }
+
+    public HttpRequestWithBodyImpl(String url, Set<Header> headers, Map<String, String> queryParameters, String method) {
         super(url, headers, queryParameters, method);
     }
 
@@ -51,7 +58,7 @@ public class HttpRequestWithBodyImpl extends HttpRequestWithBody {
                 requestUrl = url + "?" + queries(queryMap);
             }
 
-            RequestBuilder b = new RequestBuilder(method, requestUrl);
+            HttpRequestBuilder b = new HttpRequestBuilder(method, requestUrl);
             b.setTimeoutMillis(TIMEOUT);
 
             // Set headers
@@ -179,7 +186,7 @@ public class HttpRequestWithBodyImpl extends HttpRequestWithBody {
                 requestUrl = url + "?" + queries(queryMap);
             }
 
-            RequestBuilder b = new RequestBuilder(method, requestUrl);
+            HttpRequestBuilder b = new HttpRequestBuilder(method, requestUrl);
             b.setTimeoutMillis(TIMEOUT);
 
             // Set headers
@@ -307,7 +314,7 @@ public class HttpRequestWithBodyImpl extends HttpRequestWithBody {
                 if (queryMap != null && !queryMap.isEmpty()) {
                     requestUrl = url + "?" + queries(queryMap);
                 }
-                RequestBuilder b = new RequestBuilder(method, requestUrl);
+                HttpRequestBuilder b = new HttpRequestBuilder(method, requestUrl);
                 b.setTimeoutMillis(TIMEOUT);
                 // ... rest of original implementation ...
             }
